@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>福岡大学 英語 完全学習支援システム【決定版】</title>
+  <style>
+    :root { --fu-red: #a00000; --highlight-yellow: rgba(255, 255, 0, 0.3); }
+    body { font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background: #fdfdfd; color: #333; line-height: 1.8; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--fu-red); padding-bottom: 10px; margin-bottom: 20px; }
+    h1 { color: var(--fu-red); margin: 0; font-size: 1.4em; }
+    .card { background: white; border: 1px solid #ddd; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .btn { background: var(--fu-red); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+    .btn:hover { background: #d00000; transform: translateY(-2px); }
+    .btn-sub { background: #666; margin-right: 5px; }
+    .btn-orange { background: #e67e22; }
+    .sentence-block { border-left: 5px solid var(--fu-red); padding: 15px 20px; margin-bottom: 10px; background: #fff; cursor: pointer; position: relative; }
+    .highlight { background-color: var(--highlight-yellow) !important; }
+    .eng-text { font-size: 1.2em; font-weight: 500; color: #111; display: block; margin-bottom: 8px; }
+    .dict-word { color: #d63031; font-weight: bold; border-bottom: 2px solid #ffadad; cursor: pointer; }
+    #word-popup { position: absolute; background: white; border: 2px solid var(--fu-red); padding: 15px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; z-index: 5000; min-width: 220px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; }
+    .modal-content { background: white; width: 90%; max-width: 850px; padding: 30px; border-radius: 15px; max-height: 85vh; overflow-y: auto; }
+    .info-box { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid var(--fu-red); }
+    .test-section { display: none; animation: fadeIn 0.5s; }
+    .test-q { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+    .choice-btn { display: block; width: 100%; max-width: 450px; margin: 10px auto; padding: 12px; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-size: 1.1em; }
+    .choice-btn:hover { background: #f0f0f0; }
+    .footnote { background: #eee; padding: 15px; border-radius: 8px; font-size: 0.9em; margin-top: 20px; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+<div id="learning-ui">
+  <div class="header">
+    <h1>🏫 福岡大学 英語 完全学習支援システム</h1>
+    <button class="btn" onclick="showTest()">🎯 合格判定テストに進む</button>
+  </div>
+
+  <div class="card">
+    <strong>🔊 読上げ速度</strong>: <input type="range" id="v-speed" min="0.5" max="1.5" step="0.1" value="1.0">
+    <p><small>※単語をクリックで「意味・発音・保存」。文章をクリックで「黄色マーカー」。</small></p>
+  </div>
+
+  <div class="card">
+    <h2>📖 長文精読・完全解説</h2>
+    <div id="main-content"></div>
+    <div class="footnote">
+      <strong>【注（脚注）】</strong> visa(s)：ビザ，査証 / expire：有効期限が切れる
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🌟 保存した単語帳</h2>
+    <div id="my-vocab-list"></div>
+    <div id="vocab-test-area" style="display:none; text-align: center; margin-top:20px;">
+      <button class="btn btn-orange" onclick="startVocabTest()">📙 保存した単語のテストを始める</button>
+      <button class="btn btn-sub" style="background:#e74c3c" onclick="clearVocab()">単語帳リセット</button>
+    </div>
+  </div>
+</div>
+
+<div id="test-section" class="test-section">
+  <div class="header">
+    <h1>🎯 福岡大学 合格判定テスト</h1>
+    <button class="btn btn-sub" onclick="showLearning()">⬅ 精読・完全解説に戻る</button>
+  </div>
+  <div class="card">
+    <div id="test-content"></div>
+    <div style="text-align:center; margin-top:30px;"><button class="btn" onclick="judge()">判定する</button></div>
+    <div id="result-area" style="margin-top:20px;"></div>
+  </div>
+</div>
+
+<div id="vocab-test-section" class="test-section">
+  <div class="header"><h1>📙 単語帳テスト</h1><button class="btn btn-sub" onclick="showLearning()">⬅ 戻る</button></div>
+  <div class="card" style="text-align:center;">
+    <div id="v-test-q-num" style="color:#888;"></div>
+    <h2 id="v-test-word" style="font-size:3em; color:var(--fu-red); margin:30px 0;"></h2>
+    <div id="v-test-choices"></div>
+    <div id="v-test-feedback" style="margin-top:20px; font-weight:bold; height:30px;"></div>
+  </div>
+</div>
+
+<div id="word-popup"></div>
+<div id="modal" class="modal" onclick="closeM()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 id="m-title" style="color:var(--fu-red); border-bottom:2px solid var(--fu-red); padding-bottom:5px;"></h3>
+    <div id="m-body"></div>
+    <button class="btn" onclick="closeM()" style="width:100%; margin-top:20px;">解説を閉じる</button>
+  </div>
+</div>
+
+<script>
+// 全29文データ（Excel内容を完全転記）
+const syntaxData = [
+  { e: "In Japan, “identity” and “opportunity” are two factors that affect the choices of parents who wish to raise their children as bilinguals — people able to speak two languages.", t: "日本において、「アイデンティティ」と「機会」は、子供をバイリンガル（2つの言語を話すことができる人々）として育てたいと願う親の選択に影響を与える2つの要因です。", g: "factors を先行詞とする主格の関係代名詞 that が affect... を導き、parents を先行詞とする who が wish to... を導いています。raise A as B で「AをBとして育てる」という意味になります。文末のダッシュ（—）以降は、bilinguals を具体的に説明する同格表現となっています。", p: "raise A as B：AをBとして育てる / bilingual：2言語併用者 / factor：要因", ans: "" },
+  { e: "Below are three ( A ) this may be said to be true.", t: "以下に、このことがいかに真実であると言えるかを説明する3つの短い物語があります。", g: "場所を表す副詞 Below が文頭に来たための倒置形（V+S）です。本来の語順は Three short stories that explain how... are below. となります。be said to be true で「真実であると言われる」という受身の表現です。", p: "be said to be：〜であると言われる / explain：説明する", ans: "7", hint: "これから3つの物語を紹介する導入文です。後に続く内容を説明する「物語」を表す言葉を選んでください。" },
+  { e: "Joshua graduated from an international university in Japan many years ago.", t: "ジョシュアは何年も前に日本の国際大学を卒業しました。", g: "graduate は自動詞ですので、卒業した対象（大学など）を後ろに置く場合は、前置詞の from が必要となります。", p: "graduate from：〜を卒業する / international university：国際大学", ans: "" },
+  { e: "Instead of returning to the Philippines, he found employment at a company and eventually gained permanent resident status.", t: "フィリピンに帰る代わりに、彼は会社に職を見つけ、最終的に永住権を得ました。", g: "Instead of 〜ing で「〜する代わりに」という重要な譲歩の表現です。eventually は「最終的に・ついに」という意味の副詞です。permanent resident status は「永住権（永住者の身分）」という定型的な表現です。", p: "Instead of：〜の代わりに / eventually：ついに / permanent resident status：永住権", ans: "" },
+  { e: "Some time later, he married a Japanese woman, Mimi, and they started a family.", t: "しばらくして、彼は日本人の女性ミミと結婚し、家庭を築きました。", g: "married は他動詞ですので、married with としないように注意してください。start a family は、ただ家族になるだけでなく「子供を持つ、家庭を築く」というニュアンスで使われます。", p: "married：〜と結婚した / start a family：家庭を築く", ans: "" },
+  { e: "At home, Joshua and Mimi ( B ) in English and Japanese.", t: "家庭では、ジョシュアとミミは英語と日本語で子供たちと話すよう意識的な努力をしました。", g: "make a conscious effort to do で「意識的に〜しようと努力する」という強い意志を表す熟語です。JoshuaとMimiが家庭で行っていた言語教育の方針を説明しています。", p: "make an effort to：〜しようと努力する / conscious：意識的な", ans: "9", hint: "家庭内でジョシュアたちが子供に対して、日本語と英語を「どう使おうとしたか」を考えましょう。" },
+  { e: "However, Joshua still strongly identified as a native speaker of Tagalog, one of the official languages of the Philippines.", t: "しかし、ジョシュアは依然として、フィリピンの公用語の一つであるタガログ語のネイティブスピーカーであるという強い自認を持っていました。", g: "identify as... で「〜としてのアイデンティティを持つ、自認する」という意味になります。Tagalog の直後のカンマは同格で、タガログ語が何であるかを補足説明しています。", p: "identify as：〜としての自認を持つ / official language：公用語", ans: "" },
+  { e: "One summer, his family took a trip there so that his two pre-school children could meet their cousins of roughly the same age.", t: "ある夏、彼の家族は、2人の未就学児がほぼ同年齢のいとこたちに会えるようにと、フィリピンへ旅行しました。", g: "so that S can [could] ... で「Sが〜できるように」という目的を表す副詞節を作ります。roughly は数字などを修飾して「およそ、ざっと」という意味になります。", p: "so that...：〜できるように / pre-school：就学前の / roughly：およそ", ans: "" },
+  { e: "They had a fun time, but unfortunately, the kids ( C ) Joshua decided he would begin teaching them Tagalog to prepare them for their next visit to the Philippines.", t: "彼らは楽しい時間を過ごしましたが、あいにく、子供たちはコミュニケーションをとるのに非常に苦労したため、ジョシュアは次回のフィリピン訪問に備えて彼らにタガログ語を教え始めようと決心しました。", g: "so ... that 〜（非常に…なので〜だ）の構文が隠れています。struggled to communicate で「意思疎通に苦労した」という意味です。これが Joshua が教育方針を変える理由（decided）となりました。", p: "unfortunately：あいにく / struggle to：〜するのに苦労する / prepare for：〜に備える", ans: "1", hint: "unfortunately（あいにく）に続く、否定的な結果を探します。子供が従兄弟とうまく話せなかった状況を指す選択肢を選んでください。" },
+  { e: "The case of Joshua and Mimi shows how parents make language choices to ensure that children develop a healthy sense of identity — to know who they are.", t: "ジョシュアとミミの事例は、子供たちが健全なアイデンティティの感覚を養う（自分が何者かを知る）ことを確実にするために、親がいかに言語の選択を行うかを示しています。", g: "ensure that... は「〜であることを確実にする、保証する」という動詞です。who they are は「自分たちが誰であるか」という間接疑問文です。", p: "ensure：確実にする / healthy sense of identity：健全なアイ同一性の感覚", ans: "" },
+  { e: "Emi grew up in a Japanese home a few hours from Tokyo.", t: "エミは東京から数時間のところにある日本の家庭で育ちました。", g: "grow up（育つ）の過去形 grew up が使われています。a few hours from... は「〜から数時間の距離」という場所の限定です。", p: "grow up：育つ / a few hours from：〜から数時間", ans: "" },
+  { e: "Her parents hardly spoke English at all.", t: "彼女の両親は英語を全くと言っていいほど話しませんでした。", g: "hardly は準否定語で「ほとんど〜ない」を意味し、文末の at all と組み合わさることで「全く〜ない」という強い否定を表しています。", p: "hardly... at all：全く〜ない", ans: "" },
+  { e: "Although they were employed at different companies, they both noticed that co-workers who were highly skilled in English seemed to regularly get promotions ahead of them.", t: "別々の会社に勤めていましたが、英語が非常に堪能な同僚が自分たちよりも先に定期的に昇進しているようだと二人とも気づきました。", g: "Although は「〜だけれども」という譲歩の接続詞です。co-workers を関係代名詞 who が修飾しています。ahead of them は「彼らよりも先に、彼らを追い越して」という意味です。", p: "skilled in：〜に熟練した / promotion：昇進 / ahead of：〜より先に", ans: "" },
+  { e: "They recognized that this is just the way global businesses operate, so they ( D ).", t: "彼らは、これがグローバル企業のあり方なのだと認識していたので、それほど落胆はしませんでした。", g: "the way S V は「SがVするやり方・方法」を表します。operate は「運営される、機能する」という意味。so は結果を導く接続詞です。", p: "recognize：認識する / operate：運営される / disappointed：落胆した", ans: "4", hint: "昇進できない理由が実力（英語）の差だと納得しているので、自分たちの現状をどう受け止めたかを考えましょう。" },
+  { e: "The future would be brighter for their only daughter, though.", t: "しかし、一人娘の未来はより明るいものになるだろう。", g: "文末の though は「しかしながら」という副詞的な用法です。未来に対する希望を表しています。", p: "brighter：より明るい / though：しかしながら", ans: "" },
+  { e: "Firmly resolved, they carried out a lengthy search, then found a unique private school for her where courses would be taught in both Japanese and English.", t: "強く決心した彼らは、長期にわたる探索を行い、日本語と英語の両方で授業が行われる私立学校を見つけました。", g: "Firmly resolved は分詞構文で「強く決意して」という状態を表します。関係副詞 where が a unique private school を先行詞として修飾しています。", p: "firmly resolved：堅く決心して / lengthy search：長い探索", ans: "" },
+  { e: "In Emi’s case, becoming bilingual had far less to do with identity; her Japanese parents were acting on a perceived need to give their child what they believed to be the best chance possible to succeed in a changing world.", t: "エミの事例では、バイリンガルになることはアイデンティティとはほとんど関係がなく、成功のチャンスを与えるための親の行動でした。", g: "have less to do with... で「〜とあまり関係がない」の比較級。what they believed... は関係代名詞 what を使った名詞節で「彼らが〜だと信じていたもの」という意味です。perceived は「認識された、感じられた」という意味の過去分詞形容詞です。", p: "have less to do with：〜とあまり関係がない / succeed：成功する", ans: "" },
+  { e: "Kanako and Masa met in the US while attending college as exchange students.", t: "カナコとマサは、交換留学生として大学に通っている間にアメリカで出会いました。", g: "while (they were) attending と分詞構文のような形になっています。exchange student は「交換留学生」です。", p: "exchange student：交換留学生 / while attending：通学している間に", ans: "" },
+  { e: "Over a period of four years, they made numerous close friends and began to feel completely at home in the culture; their English abilities reached extremely high levels too.", t: "4年間で多くの友人ができ、文化に完全に馴染んでいると感じるようになりました。彼らの英語力も極めて高い水準に達しました。", g: "feel at home は「自分の家にいるようにくつろぐ、馴染む」という熟語です。セミコロン（;）は接続詞の役割を果たし、文を繋いでいます。extremely は「極めて」という強調副詞です。", p: "numerous：多数の / feel at home：馴染む / extremely high：極めて高い", ans: "" },
+  { e: "When their visas expired, they had no choice but to move back to Tokyo.", t: "ビザの期限が切れたとき、彼らは東京に戻るしかありませんでした。", g: "have no choice but to do は「〜するより他に道がない、〜せざるを得ない」という極めて重要な慣用表現です。expire は「（期限が）切れる」という動詞です。", p: "expire：期限が切れる / have no choice but to：〜せざるを得ない", ans: "" },
+  { e: "They got married, worked hard, studied, and ( E ) to the US.", t: "彼らは結婚し、懸命に働き、勉強し、そしてアメリカに合法的に戻る機会を模索しました。", g: "sought は seek（探す）の過去形です。seek out で「探し出す、模索する」となります。legally は「法律的に、合法的に」という副詞です。", p: "seek out：探し出す / legally：合法的に / opportunity：機会", ans: "6", hint: "アメリカでの生活に馴染んでいた二人が、日本に戻った後で「もう一度どうしたい」と考えたかを考えましょう。" },
+  { e: "A few years went by and they started a family.", t: "数年が経ち、彼らは家庭を築きました。", g: "go by は「（時間が）経過する」という意味の句動詞です。start a family は以前の文と同様「家庭を築く、子供を持つ」です。", p: "go by：経過する / start a family：家庭を築く", ans: "" },
+  { e: "Kanako and Masa decided that as far as possible they would speak only English in the home in order to prepare their kids for a future life overseas.", t: "彼らは子供たちの将来の海外生活に備えるため、家庭内ではできる限り英語だけを話すことに決めました。", g: "as far as possible で「可能な限り、できるだけ」という意味。in order to は「〜するために」という目的を表す不定詞の強調形です。", p: "as far as possible：可能な限り / overseas：海外へ", ans: "" },
+  { e: "As you can imagine, this is easier said than done.", t: "ご想像の通り、これは言うは易く行うは難しです。", g: "Easier said than done は英語のことわざで、直訳すると「なされるより言われる方が簡単だ」つまり「実行は難しい」という意味です。", p: "easier said than done：言うは易く行うは難し", ans: "" },
+  { e: "The young ones still needed to function in Japanese society while the parents waited — job offers and visa approvals were taking more time to secure than anticipated.", t: "両親が待つ間、幼い子供たちは日本社会で生活する必要があり、ビザの承認も予想以上に時間がかかっていました。", g: "function は動詞で「機能する、生活する、役割を果たす」という意味。more time than anticipated で「予想（期待）していたよりも多くの時間」という比較表現です。secure は「確保する、手に入れる」です。", p: "function：活動する / secure：確保する / anticipated：予想された", ans: "" },
+  { e: "Eventually, the dream of Masa and Kanako came true.", t: "ついに、マサとカナコの夢は実現しました。", g: "come true は「（夢などが）実現する、叶う」という定番の熟語です。Eventually は「ついに、結局」という意味です。", p: "come true：実現する / eventually：ついに", ans: "" },
+  { e: "They continue to have high hopes for raising their children as bilinguals in the US; the motive for them involves a mixture of identity and opportunity.", t: "彼らはアメリカで子供たちをバイリンガルとして育てることに高い希望を持ち続けています。その動機には、アイデンティティと機会の混合が関わっています。", g: "raising... は動名詞で「育てること」。motive は「動機」。involve は「〜を伴う、〜に関わる」という意味の動詞です。", p: "motive：動機 / involve：〜を伴う / mixture：混合", ans: "" },
+  { e: "These short tales express how approaches to bilingualism vary from case to case, suggesting how great a challenge it would be for an entire society to set policies on bilingual education since ( F ) play a role in decision-making among families.", t: "これらの物語は事例により様々であり、家族の意思決定には個人的な問題が当然役割を果たすため、教育政策を定める困難さを示唆しています。", g: "vary from case to case で「事例によって異なる」。suggesting は現在分詞による付帯状況。since は理由（〜なので）を表す接続詞。play a role in... で「〜において役割を果たす」という重要表現です。", p: "vary：異なる / play a role in：〜で役割を果たす / decision-making：意思決定", ans: "2", hint: "社会が一律に決めるのが難しい理由として、各家庭の決定（decision-making）には何が関わっているからでしょうか。" }
+];
+
+// 単語データ（全41語）
+const vocabData = {
+  "identity": { r: "アイ【デ】ンティティ", m: "自己同一性" },
+  "opportunity": { r: "アパ【テュ】ニティ", m: "機会" },
+  "factor": { r: "【ファ】クター", m: "要因" },
+  "affect": { r: "ア【フェ】クト", m: "影響を与える" },
+  "graduate": { r: "グ【ラ】ジュエイト", m: "卒業する" },
+  "employment": { r: "イムプ【ロィ】メント", m: "職、雇用" },
+  "eventually": { r: "イ【ヴェ】ンチュアリー", m: "ついに" },
+  "permanent": { r: "【パ】ーマネント", m: "永久的な" },
+  "status": { r: "ス【テ】イタス", m: "地位" },
+  "conscious": { r: "【カ】ンシャス", m: "意識的な" },
+  "effort": { r: "【エ】フォート", m: "努力" },
+  "official": { r: "オ【フィ】シャル", m: "公式の" },
+  "roughly": { r: "【ラ】フリー", m: "およそ" },
+  "struggle": { r: "スト【ラ】グル", m: "苦闘する" },
+  "ensure": { r: "イン【シュ】ア", m: "確実にする" },
+  "hardly": { r: "【ハ】ードリー", m: "ほとんど〜ない" },
+  "promotion": { r: "プロ【モ】ーション", m: "昇進" },
+  "recognize": { r: "【レ】カグナイズ", m: "認識する" },
+  "operate": { r: "【ア】パレイト", m: "運営する" },
+  "disappoint": { r: "ディサ【ポ】イント", m: "失望させる" },
+  "firmly": { r: "【ファ】ームリー", m: "堅く" },
+  "resolve": { r: "リ【ゾ】ルヴ", m: "決心する" },
+  "lengthy": { r: "【レ】ングスィー", m: "長い" },
+  "perceive": { r: "パ【スィ】ーヴ", m: "知覚する" },
+  "succeed": { r: "サク【スィ】ード", m: "成功する" },
+  "numerous": { r: "【ニュ】ーマラス", m: "多数の" },
+  "extremely": { r: "イクスト【リ】ームリー", m: "極めて" },
+  "expire": { r: "イクス【パ】イア", m: "期限が切れる" },
+  "legally": { r: "【リ】ーガリー", m: "合法的に" },
+  "function": { r: "【ファ】ンクション", m: "機能する" },
+  "approval": { r: "アプ【ル】ーヴァル", m: "承認" },
+  "anticipate": { r: "アン【ティ】スィペイト", m: "予想する" },
+  "motive": { r: "【モ】ウティヴ", m: "動機" },
+  "mixture": { r: "【ミ】クスチャ", m: "混合" },
+  "policy": { r: "【ポ】リスィー", m: "政策" },
+  "vary": { r: "【ヴェ】アリ", m: "異なる" },
+  "bilingual": { r: "バイ【リ】ンギュアル", m: "2言語併用者" },
+  "overseas": { r: "オウヴァ【スィ】ーズ", m: "海外へ" },
+  "healthy": { r: "【ヘ】ルスィー", m: "健全な" },
+  "unique": { r: "ユ【ニ】ーク", m: "独特な" },
+  "success": { r: "サク【セ】ス", m: "成功" }
+};
+
+const choiceTexts = {
+  "1": "struggled to communicate so much that",
+  "2": "personal issues naturally",
+  "3": "were unwilling to eat the food there, so",
+  "4": "did not feel too disappointed",
+  "5": "could not stop thinking about",
+  "6": "sought out opportunities to legally return",
+  "7": "short stories that explain how",
+  "8": "examples from everyday life of",
+  "9": "made a conscious effort to speak with their children"
+};
+
+let myVocab = JSON.parse(localStorage.getItem('fukuokaVocab') || '[]');
+let currentTestIdx = 0;
+let testQueue = [];
+
+function init() {
+  const main = document.getElementById('main-content');
+  syntaxData.forEach((d, i) => {
+    let eHtml = d.e;
+    Object.keys(vocabData).forEach(v => {
+      const reg = new RegExp(`\\b${v}\\b`, 'gi');
+      eHtml = eHtml.replace(reg, `<span class="dict-word" onclick="pop(event,'${v}')">$&</span>`);
+    });
+    eHtml = eHtml.replace(/\( ([A-F]) \)/g, `<span class="blank-space" style="color:var(--fu-red); font-weight:bold;">($1)</span>`);
+
+    const div = document.createElement('div');
+    div.className = 'sentence-block';
+    div.onclick = function(e) { if(e.target.className !== 'dict-word') this.classList.toggle('highlight'); };
+    div.innerHTML = `
+      <span class="eng-text"><strong>${i+1}.</strong> ${eHtml}</span>
+      <div style="margin-top:8px;">
+        <button class="btn" style="padding:4px 10px; font-size:0.8em;" onclick="speak('${d.e}')">🔊 再生</button>
+        <button class="btn btn-sub" style="padding:4px 10px; font-size:0.8em;" onclick="toggleT(${i})">和訳</button>
+        <button class="btn btn-sub" style="padding:4px 10px; font-size:0.8em;" onclick="openM(${i})">完全解説</button>
+      </div>
+      <div id="trans-${i}" style="display:none; color:var(--fu-red); font-weight:bold; margin-top:10px; background:#fffafa; padding:10px; border-radius:5px;">${d.t}</div>
+    `;
+    main.appendChild(div);
+  });
+  renderVocab();
+}
+
+function showLearning() {
+  document.getElementById('learning-ui').style.display = 'block';
+  document.getElementById('test-section').style.display = 'none';
+  document.getElementById('vocab-test-section').style.display = 'none';
+}
+
+function showTest() {
+  document.getElementById('learning-ui').style.display = 'none';
+  document.getElementById('test-section').style.display = 'block';
+  document.getElementById('vocab-test-section').style.display = 'none';
+  const testArea = document.getElementById('test-content');
+  const blanks = syntaxData.filter(d => d.ans !== "");
+  testArea.innerHTML = blanks.map((d, i) => {
+    const letter = ["A","B","C","D","E","F"][i];
+    let q = d.e.replace(/\( ([A-F]) \)/, `<select id="q-${i}"><option value="">--選択--</option>${Object.keys(choiceTexts).map(k => `<option value="${k}">${k}. ${choiceTexts[k]}</option>`).join('')}</select>`);
+    return `<div class="test-q"><strong>問 ${letter}:</strong><br>${q}</div>`;
+  }).join('');
+}
+
+function judge() {
+  const blanks = syntaxData.filter(d => d.ans !== "");
+  let score = 0;
+  let mistakes = [];
+  blanks.forEach((d, i) => {
+    if(document.getElementById(`q-${i}`).value === d.ans) score++;
+    else mistakes.push({letter: ["A","B","C","D","E","F"][i], hint: d.hint, e: d.e, g: d.g, p: d.p});
+  });
+
+  const res = document.getElementById('result-area');
+  if(score === blanks.length) {
+    res.innerHTML = `<div class="card" style="background:#e8f8f5; border-color:#2ecc71; text-align:center;">
+      <h2 style="color:#2ecc71;">🎉 素晴らしい！満点合格です！ 🎉</h2>
+      <p>すべての問題を正解しました。福岡大学の読解力はバッチリです！</p>
+    </div>`;
+  } else {
+    res.innerHTML = `<div class="card" style="border-color:var(--fu-red);">
+      <h2 style="color:var(--fu-red);">判定：もう一度復習してみましょう！</h2>
+      <p>正解数：${score} / ${blanks.length}</p>
+      ${mistakes.map(m => `<div class="info-box"><strong>空所 ${m.letter} のヒント：</strong><br>${m.hint}</div>`).join('')}
+    </div>`;
+  }
+  res.innerHTML += `<h3>各問題の解説</h3>` + blanks.map((d, i) => `<button class="btn btn-sub" style="margin:5px;" onclick="openM_raw('${d.e}', '${d.g}', '${d.p}')">問 ${["A","B","C","D","E","F"][i]} の解説</button>`).join('');
+}
+
+function openM_raw(e, g, p) {
+  document.getElementById('m-title').innerText = `解説`;
+  document.getElementById('m-body').innerHTML = `<div class="info-box"><strong>文法・構成</strong><br>${g}</div><div class="info-box"><strong>表現・熟語</strong><br>${p}</div>`;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function startVocabTest() {
+  if(myVocab.length < 2) return alert("テストには2語以上の保存が必要です。");
+  document.getElementById('learning-ui').style.display = 'none';
+  document.getElementById('vocab-test-section').style.display = 'block';
+  testQueue = [...myVocab].sort(() => Math.random() - 0.5);
+  currentTestIdx = 0;
+  showNextVocab();
+}
+
+function showNextVocab() {
+  if(currentTestIdx >= testQueue.length) { alert("終了！"); return showLearning(); }
+  const word = testQueue[currentTestIdx];
+  const info = vocabData[word.toLowerCase()];
+  document.getElementById('v-test-q-num').innerText = `${currentTestIdx + 1} / ${testQueue.length}`;
+  document.getElementById('v-test-word').innerText = word;
+  let choices = [info.m];
+  let others = Object.values(vocabData).map(v => v.m).filter(m => m !== info.m);
+  choices.push(...others.sort(() => Math.random() - 0.5).slice(0, 3));
+  choices.sort(() => Math.random() - 0.5);
+  document.getElementById('v-test-choices').innerHTML = choices.map(c => `<button class="choice-btn" onclick="checkVAns('${c}', '${info.m}')">${c}</button>`).join('');
+  document.getElementById('v-test-feedback').innerText = "";
+}
+
+function checkVAns(s, c) {
+  const f = document.getElementById('v-test-feedback');
+  if(s === c) { f.style.color="green"; f.innerText="正解！"; setTimeout(() => { currentTestIdx++; showNextVocab(); }, 800) }
+  else { f.style.color="red"; f.innerText=`残念、正解は「${c}」です。`; setTimeout(() => { currentTestIdx++; showNextVocab(); }, 1500) }
+}
+
+function pop(e, w) {
+  e.stopPropagation();
+  const p = document.getElementById('word-popup');
+  const info = vocabData[w.toLowerCase()];
+  p.innerHTML = `<strong>${w}</strong><br><small>${info.r}</small><br><b>${info.m}</b><br><button class="btn" onclick="saveVocab('${w}')" style="font-size:0.7em; margin-top:5px;">保存</button>`;
+  p.style.display = 'block'; p.style.left = e.pageX + 'px'; p.style.top = e.pageY + 'px';
+  setTimeout(() => p.style.display = 'none', 4000);
+}
+
+function saveVocab(w) { if(!myVocab.includes(w)) { myVocab.push(w); localStorage.setItem('fukuokaVocab', JSON.stringify(myVocab)); renderVocab(); alert("保存しました"); } }
+function renderVocab() {
+  const l = document.getElementById('my-vocab-list');
+  const a = document.getElementById('vocab-test-area');
+  if(myVocab.length > 0) { l.innerHTML = myVocab.map(w => `<div style="border:1px solid #a00000; display:inline-block; margin:5px; padding:5px; border-radius:5px;">${w}</div>`).join(''); a.style.display='block'; }
+  else { l.innerHTML = "<p>保存した単語はありません。</p>"; a.style.display='none'; }
+}
+function clearVocab() { if(confirm("リセットしますか？")) { myVocab = []; localStorage.removeItem('fukuokaVocab'); renderVocab(); } }
+function toggleT(i) { const el = document.getElementById(`trans-${i}`); el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+function openM(i) {
+  const d = syntaxData[i];
+  document.getElementById('m-title').innerText = `No.${i+1} 完全解説`;
+  document.getElementById('m-body').innerHTML = `<div class="info-box"><strong>文法・構成</strong><br>${d.g}</div><div class="info-box"><strong>重要表現</strong><br>${d.p}</div>`;
+  document.getElementById('modal').style.display = 'flex';
+}
+function closeM() { document.getElementById('modal').style.display = 'none'; }
+
+init();
+</script>
+</body>
+</html>
